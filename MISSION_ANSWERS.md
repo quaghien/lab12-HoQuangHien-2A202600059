@@ -1,8 +1,10 @@
 # Day 12 Lab - Mission Answers
 
-> **Student Name:** Hồ Quang Hiển
-> **Student ID:** 2A202600059
-> **Date:** 17/04/2026
+**Student Name:** Hồ Quang Hiển
+
+**Student ID:** 2A202600059
+
+**Date:** 17/04/2026
 
 ---
 
