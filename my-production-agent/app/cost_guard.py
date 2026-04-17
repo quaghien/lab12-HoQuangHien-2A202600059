@@ -7,7 +7,7 @@ from app.config import settings
 
 
 def estimate_cost_usd(text: str) -> float:
-    # Rough estimate cho mock model: $0.00002 mỗi token.
+    # Rough estimate chi phí (token ≈ 1.3 × số từ): $0.00002 / token.
     # 1 token ~ 0.75 từ, làm tròn đơn giản để tránh over-engineering.
     token_count = max(1, int(len(text.split()) * 1.3))
     return token_count * 0.00002

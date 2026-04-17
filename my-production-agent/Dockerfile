@@ -16,7 +16,6 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 COPY app ./app
-COPY utils ./utils
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

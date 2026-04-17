@@ -10,14 +10,13 @@ import uvicorn
 from openai import OpenAI
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from collections.abc import Iterator
 from pydantic import BaseModel, Field
 
 from app.auth import verify_api_key
 from app.config import settings
 from app.cost_guard import check_and_record_budget, estimate_cost_usd
 from app.rate_limiter import check_rate_limit
-from utils.mock_llm import ask as llm_ask
-from utils.mock_llm import ask_stream as llm_ask_stream
 
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO), format="%(message)s")
@@ -61,12 +60,15 @@ def _build_messages(question: str, history: list[dict]) -> list[dict]:
     return messages
 
 
-def _generate_answer(question: str, history: list[dict]) -> tuple[str, str]:
-    if not openai_client:
-        return llm_ask(question, history=history, model=settings.llm_model), "mock"
+def _iter_answer_stream(answer: str) -> Iterator[str]:
+    """Stream text đã có (sau khi OpenAI trả về full answer)."""
+    for word in answer.split():
+        yield f"{word} "
 
+
+def _generate_answer(client: OpenAI, question: str, history: list[dict]) -> tuple[str, str]:
     messages = _build_messages(question, history)
-    completion = openai_client.chat.completions.create(
+    completion = client.chat.completions.create(
         model=settings.llm_model,
         messages=messages,
         temperature=0.2,
@@ -153,6 +155,12 @@ def ready():
 
 @app.post("/ask")
 def ask(payload: AskRequest, _auth: None = Depends(verify_api_key)):
+    if not openai_client:
+        raise HTTPException(
+            status_code=503,
+            detail="OpenAI chưa cấu hình. Đặt biến môi trường OPENAI_API_KEY.",
+        )
+
     check_rate_limit(redis_client, payload.user_id)
 
     history_key = f"history:{payload.user_id}"
@@ -160,7 +168,7 @@ def ask(payload: AskRequest, _auth: None = Depends(verify_api_key)):
     history = [json.loads(item) for item in history_raw]
 
     try:
-        answer, provider = _generate_answer(payload.question, history)
+        answer, provider = _generate_answer(openai_client, payload.question, history)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"LLM call failed: {exc}") from exc
     estimated_cost = estimate_cost_usd(payload.question + " " + answer)
@@ -173,7 +181,7 @@ def ask(payload: AskRequest, _auth: None = Depends(verify_api_key)):
     redis_client.expire(history_key, 30 * 24 * 3600)
 
     if payload.stream:
-        return StreamingResponse(llm_ask_stream(answer), media_type="text/plain")
+        return StreamingResponse(_iter_answer_stream(answer), media_type="text/plain")
 
     return {
         "user_id": payload.user_id,

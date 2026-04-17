@@ -17,8 +17,7 @@ Production-ready AI agent cho Part 6, theo đúng trọng tâm bạn chốt:
 ## Phân biệt API keys (quan trọng)
 
 - `AGENT_API_KEY`: key bảo vệ endpoint `/ask` của chính app bạn. Client phải gửi header `X-API-Key` để gọi API.
-- `OPENAI_API_KEY`: key để app gọi OpenAI API thật.
-- Logic hiện tại: có `OPENAI_API_KEY` thì gọi OpenAI thật, thiếu key thì fallback về `utils/mock_llm.py`.
+- `OPENAI_API_KEY`: bắt buộc để `/ask` gọi OpenAI; thiếu key thì API trả **503** (không còn mock LLM).
 
 ## Architecture
 
@@ -56,8 +55,6 @@ my-production-agent/
 │   ├── auth.py
 │   ├── rate_limiter.py
 │   └── cost_guard.py
-├── utils/
-│   └── mock_llm.py
 ├── nginx/
 │   └── nginx.conf
 ├── Dockerfile
@@ -123,7 +120,7 @@ railway add #-> chọn Empty Service -> / Nếu chọn db thì chọn redis
 railway service
 railway variables set AGENT_API_KEY=your-secret-key
 railway variables set REDIS_URL=redis://<your-redis-url>
-railway variables set OPENAI_API_KEY=sk-...   # bắt buộc nếu muốn dùng GPT thật
+railway variables set OPENAI_API_KEY=sk-...   # bắt buộc cho /ask
 railway variables set LLM_MODEL=gpt-5.4-mini
 
 railway variables

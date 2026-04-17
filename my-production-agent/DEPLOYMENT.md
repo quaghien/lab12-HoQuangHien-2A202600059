@@ -44,6 +44,7 @@ curl -X POST https://lab12-production-3c12.up.railway.app/ask \
 
 ## Notes
 
+- `POST /ask` cần `OPENAI_API_KEY` trên Railway; thiếu key → HTTP **503** (không còn mock).
 - Root path `/` returns `{"detail":"Not Found"}` by design.
 - Main endpoints for validation are `/health`, `/ready`, and `POST /ask`.
 
